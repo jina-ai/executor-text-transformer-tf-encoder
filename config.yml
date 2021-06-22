@@ -1,4 +1,4 @@
-jtype: MyDummyExecutor
+jtype: TransformerTFTextEncoder
 metas:
   py_modules:
-    - MODULE_NAME.py
+    - transformer_tf_text_encode.py
