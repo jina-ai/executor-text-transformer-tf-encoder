@@ -1,25 +1,6 @@
-# 🏗️ PLEASE CHECK OUT [STEP-BY-STEP](.github/STEP_BY_STEP.md)
+# ImagePaddlehubEncoder
 
-----
-
-# ✨ TransformerTFTextEncoder
-
-**TransformerTFTextEncoder** is a class that ...
-
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-**Table of Contents**
-
-- [🌱 Prerequisites](#-prerequisites)
-- [🚀 Usages](#-usages)
-- [🎉️ Example](#%EF%B8%8F-example)
-- [🔍️ Reference](#%EF%B8%8F-reference)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## 🌱 Prerequisites
-
-Some conditions to fulfill before running the executor
+**ImagePaddlehubEncoder** encodes `Document` content from a ndarray, potentially B x (Channel x Height x Width) into a ndarray of `B x D`. Internally, **ImagePaddlehubEncoder** wraps the models from [paddlehub](https://github.com/PaddlePaddle/PaddleHub)
 
 ## 🚀 Usages
 
@@ -31,7 +12,7 @@ Use the prebuilt images from JinaHub in your python codes,
 ```python
 from jina import Flow
 	
-f = Flow().add(uses='jinahub+docker://TransformerTFTextEncoder')
+f = Flow().add(uses='jinahub+docker://ImagePaddlehubEncoder')
 ```
 
 or in the `.yml` config.
@@ -40,7 +21,7 @@ or in the `.yml` config.
 jtype: Flow
 pods:
   - name: encoder
-    uses: 'jinahub+docker://TransformerTFTextEncoder'
+    uses: 'jinahub+docker://ImagePaddlehubEncoder'
 ```
 
 #### using source codes
@@ -49,7 +30,7 @@ Use the source codes from JinaHub in your python codes,
 ```python
 from jina import Flow
 	
-f = Flow().add(uses='jinahub://TransformerTFTextEncoder')
+f = Flow().add(uses='jinahub://ImagePaddlehubEncoder')
 ```
 
 or in the `.yml` config.
@@ -58,25 +39,25 @@ or in the `.yml` config.
 jtype: Flow
 pods:
   - name: encoder
-    uses: 'jinahub://TransformerTFTextEncoder'
+    uses: 'jinahub://ImagePaddlehubEncoder'
 ```
 
 
 ### 📦️ Via Pypi
 
-1. Install the `jinahub-TransformerTFTextEncoder` package.
+1. Install the package.
 
 	```bash
-	pip install git+https://github.com/jina-ai/EXECUTOR_REPO_NAME.git
+	pip install git+https://github.com/jina-ai//executor-image-paddle-encoder.git
 	```
 
-1. Use `jinahub-TransformerTFTextEncoder` in your code
+1. Use `ImagePaddlehubEncoder` in your code
 
 	```python
 	from jina import Flow
-	from jinahub.encoder.TransformerTFTextEncoder import TransformerTFTextEncoder
+	from jinahub.encoder.paddle_image import ImagePaddlehubEncoder
 	
-	f = Flow().add(uses=TransformerTFTextEncoder)
+	f = Flow().add(uses=ImagePaddlehubEncoder)
 	```
 
 
@@ -85,42 +66,45 @@ pods:
 1. Clone the repo and build the docker image
 
 	```shell
-	git clone https://github.com/jina-ai/executor-text-transformer-tf-encoder.git
-	cd executor-text-transformer-tf-encoder
-	docker build -t TransformerTFTextEncoder .
+	git clone https://github.com/jina-ai/executor-image-paddle-encoder.git
+	cd executor-image-paddle-encoder
+	docker build -t executor-image-paddle-encoder .
 	```
 
-1. Use `executor-text-transformer-tf-encoder` in your codes
+1. Use `my-dummy-executor-image` in your codes
 
 	```python
 	from jina import Flow
 	
-	f = Flow().add(uses='docker://TransformerTFTextEncoder:latest')
+	f = Flow().add(uses='docker://executor-image-paddle-encoder:latest')
 	```
-	
+ 
+## 🎉 Example:
 
-## 🎉️ Example 
-
+Here is an example usage of the **ImagePaddlehubEncoder**.
 
 ```python
-from jina import Flow, Document
+    def process_response(resp):
+        ...
 
-f = Flow().add(uses='jinahub+docker://TransformerTFTextEncoder')
-
-with f:
-    resp = f.post(on='foo', inputs=Document(), return_resutls=True)
-	print(f'{resp}')
+    f = Flow().add(uses={
+        'jtype': ImagePaddlehubEncoder.__name__,
+        'with': {
+            'default_batch_size': 32,
+            'model_name': 'xception71_imagenet',
+        },
+        'metas': {
+            'py_modules': ['paddle_image.py']
+        }
+    })
+    with f:
+        f.post(on='/test', inputs=(Document(blob=np.ones((224, 224, 3))) for _ in range(25)), on_done=process_response)
 ```
 
 ### Inputs 
 
-`Document` with `text` .
+`Document` with `blob` as data of images.
 
 ### Returns
 
-`Document` with `embedding` fields filled with an `ndarray` of the shape `embedding_dim` (=128, by default) with `dtype=nfloat32`.
-
-
-## 🔍️ Reference
-- Some reference
-
+`Document` with `embedding` fields filled with an `ndarray`  with `dtype=nfloat32`.

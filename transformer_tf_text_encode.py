@@ -1,13 +1,18 @@
 __copyright__ = "Copyright (c) 2021 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
-
-
-import tensorflow as tf
-from typing import Optional
+from typing import Optional, List, Any, Iterable
 
 import numpy as np
-from jina import Document, DocumentArray, Executor
+import tensorflow as tf
+from jina import DocumentArray, Executor, requests
+from jina.logging.logger import JinaLogger
+
+
+def _batch_generator(data: List[Any], batch_size: int):
+    for i in range(0, len(data), batch_size):
+        yield data[i:i + batch_size]
+
 
 class TransformerTFTextEncoder(Executor):
     """
@@ -27,19 +32,25 @@ class TransformerTFTextEncoder(Executor):
     :param layer_index: index of the transformer layer that is used to
         create encodings. Layer 0 corresponds to the embeddings layer
     :param max_length: the max length to truncate the tokenized sequences to.
+    :param default_batch_size: size of each batch
+    :param default_traversal_paths: traversal path of the Documents, (e.g. 'r', 'c')
+    :param on_gpu: set to True if using GPU
     :param args:  Additional positional arguments
     :param kwargs: Additional keyword arguments
     """
 
     def __init__(
-        self,
-        pretrained_model_name_or_path: str = 'distilbert-base-uncased',
-        base_tokenizer_model: Optional[str] = None,
-        pooling_strategy: str = 'mean',
-        layer_index: int = -1,
-        max_length: Optional[int] = None,
-        *args,
-        **kwargs,
+            self,
+            pretrained_model_name_or_path: str = 'distilbert-base-uncased',
+            base_tokenizer_model: Optional[str] = None,
+            pooling_strategy: str = 'mean',
+            layer_index: int = -1,
+            max_length: Optional[int] = None,
+            default_batch_size: int = 32,
+            default_traversal_paths: List[str] = None,
+            on_gpu: bool = False,
+            *args,
+            **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.pretrained_model_name_or_path = pretrained_model_name_or_path
@@ -47,6 +58,10 @@ class TransformerTFTextEncoder(Executor):
         self.pooling_strategy = pooling_strategy
         self.layer_index = layer_index
         self.max_length = max_length
+        self.default_batch_size = default_batch_size
+        self.default_traversal_paths = default_traversal_paths or ['r']
+        self.on_gpu = on_gpu
+        self.logger = JinaLogger(self.__class__.__name__)
 
         if self.pooling_strategy == 'auto':
             self.pooling_strategy = 'cls'
@@ -62,32 +77,41 @@ class TransformerTFTextEncoder(Executor):
             )
             raise NotImplementedError
 
-
-    def post_init(self):
-        """Load the transformer model and encoder"""
         from transformers import TFAutoModel, AutoTokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.base_tokenizer_model)
         self.model = TFAutoModel.from_pretrained(
             self.pretrained_model_name_or_path, output_hidden_states=True
         )
-        self.to_device()
 
+        import tensorflow as tf
+        cpus = tf.config.experimental.list_physical_devices(device_type='CPU')
+        gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
+        if self.on_gpu and len(gpus) > 0:
+            cpus.append(gpus[0])
+        if self.on_gpu and len(gpus) == 0:
+            self.logger.warning('You tried to use a GPU but no GPU was found on'
+                                ' your system. Defaulting to CPU!')
+        tf.config.experimental.set_visible_devices(devices=cpus)
 
-    def encode(self, docs: DocumentArray, *args, **kwargs):
+    @requests
+    def encode(self, docs: DocumentArray, parameters: dict, *args, **kwargs):
         """
         Encode an array of string in size `B` into an ndarray in size `B x D`,
         where `B` is the batch size and `D` is the dimensionality of the encoding.
         :param docs: a document array of string type in size `B`
         :return: an ndarray in size `B x D`
         """
-        
+        if docs:
+            document_batches_generator = self._get_input_data(docs, parameters)
+            self._create_embeddings(document_batches_generator)
 
+    def _get_embeddings(self, text):
         if not self.tokenizer.pad_token:
             self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
             self.model.resize_token_embeddings(len(self.tokenizer.vocab))
 
         input_tokens = self.tokenizer(
-            list(docs.get_attributes('text')),
+            text,
             max_length=self.max_length,
             padding='longest',
             truncation=True,
@@ -133,3 +157,23 @@ class TransformerTFTextEncoder(Executor):
             output = tf.reduce_min(layer, 1)
 
         return output.numpy()
+
+    def _create_embeddings(self, document_batches_generator: Iterable):
+        for document_batch in document_batches_generator:
+            text_batch = [d.text for d in document_batch]
+            embeddings = self._get_embeddings(text_batch)
+
+            for document, embedding in zip(document_batch, embeddings):
+                document.embedding = embedding
+
+    def _get_input_data(self, docs: DocumentArray, parameters: dict):
+        traversal_paths = parameters.get('traversal_paths', self.default_traversal_paths)
+        batch_size = parameters.get('batch_size', self.default_batch_size)
+
+        # traverse thought all documents which have to be processed
+        flat_docs = docs.traverse_flat(traversal_paths)
+
+        # filter out documents without images
+        filtered_docs = [doc for doc in flat_docs if doc.text is not None]
+
+        return _batch_generator(filtered_docs, batch_size)
