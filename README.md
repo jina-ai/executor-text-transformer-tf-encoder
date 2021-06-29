@@ -1,6 +1,5 @@
-# ImagePaddlehubEncoder
-
-**ImagePaddlehubEncoder** encodes `Document` content from a ndarray, potentially B x (Channel x Height x Width) into a ndarray of `B x D`. Internally, **ImagePaddlehubEncoder** wraps the models from [paddlehub](https://github.com/PaddlePaddle/PaddleHub)
+# TransformerTFTextEncoder
+TransformerTFEncoder wraps the tensorflow-version of transformers from huggingface, encodes data from an array of string in size `B` into an ndarray in size `B x D`
 
 ## 🚀 Usages
 
@@ -12,7 +11,7 @@ Use the prebuilt images from JinaHub in your python codes,
 ```python
 from jina import Flow
 	
-f = Flow().add(uses='jinahub+docker://ImagePaddlehubEncoder')
+f = Flow().add(uses='jinahub+docker://TransformerTFTextEncoder')
 ```
 
 or in the `.yml` config.
@@ -21,7 +20,7 @@ or in the `.yml` config.
 jtype: Flow
 pods:
   - name: encoder
-    uses: 'jinahub+docker://ImagePaddlehubEncoder'
+    uses: 'jinahub+docker://TransformerTFTextEncoder'
 ```
 
 #### using source codes
@@ -30,7 +29,7 @@ Use the source codes from JinaHub in your python codes,
 ```python
 from jina import Flow
 	
-f = Flow().add(uses='jinahub://ImagePaddlehubEncoder')
+f = Flow().add(uses='jinahub://TransformerTFTextEncoder')
 ```
 
 or in the `.yml` config.
@@ -39,7 +38,7 @@ or in the `.yml` config.
 jtype: Flow
 pods:
   - name: encoder
-    uses: 'jinahub://ImagePaddlehubEncoder'
+    uses: 'jinahub://TransformerTFTextEncoder'
 ```
 
 
@@ -48,16 +47,16 @@ pods:
 1. Install the package.
 
 	```bash
-	pip install git+https://github.com/jina-ai//executor-image-paddle-encoder.git
+	pip install git+https://github.com/jina-ai//executor-text-transformer-tf-encoder.git
 	```
 
-1. Use `ImagePaddlehubEncoder` in your code
+1. Use `TransformerTFTextEncoder` in your code
 
 	```python
 	from jina import Flow
-	from jinahub.encoder.paddle_image import ImagePaddlehubEncoder
+	from jinahub.encoder.transformer_tf_text_encode import TransformerTFTextEncoder
 	
-	f = Flow().add(uses=ImagePaddlehubEncoder)
+	f = Flow().add(uses=TransformerTFTextEncoder)
 	```
 
 
@@ -66,39 +65,38 @@ pods:
 1. Clone the repo and build the docker image
 
 	```shell
-	git clone https://github.com/jina-ai/executor-image-paddle-encoder.git
-	cd executor-image-paddle-encoder
-	docker build -t executor-image-paddle-encoder .
+	git clone https://github.com/jina-ai/executor-text-transformer-tf-encoder.git
+	cd executor-text-transformer-tf-encoder
+	docker build -t executor-text-transformer-tf-encoder .
 	```
 
-1. Use `my-dummy-executor-image` in your codes
+1. Use `executor-text-transformer-tf-encoder` in your codes
 
 	```python
 	from jina import Flow
 	
-	f = Flow().add(uses='docker://executor-image-paddle-encoder:latest')
+	f = Flow().add(uses='docker://executor-text-transformer-tf-encoder:latest')
 	```
  
 ## 🎉 Example:
 
-Here is an example usage of the **ImagePaddlehubEncoder**.
+Here is an example usage of the **TransformerTFTextEncoder**.
 
 ```python
     def process_response(resp):
-        ...
+        print(resp)
 
     f = Flow().add(uses={
-        'jtype': ImagePaddlehubEncoder.__name__,
+        'jtype': TransformerTFTextEncoder.__name__,
         'with': {
-            'default_batch_size': 32,
-            'model_name': 'xception71_imagenet',
+            'pretrained_model_name_or_path': 'distilbert-base-uncased'
         },
         'metas': {
-            'py_modules': ['paddle_image.py']
+            'py_modules': ['transformer_tf_text_encode.py']
         }
     })
     with f:
-        f.post(on='/test', inputs=(Document(blob=np.ones((224, 224, 3))) for _ in range(25)), on_done=process_response)
+        f.post(on='/test', inputs=(Document(text='hello Jina', on_done=process_response)))
 ```
 
 ### Inputs 
