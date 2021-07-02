@@ -5,6 +5,7 @@ import os
 import pytest
 from jina import Document, DocumentArray
 
+
 @pytest.fixture()
 def docs_with_text() -> DocumentArray:
     return DocumentArray([

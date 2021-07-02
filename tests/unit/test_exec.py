@@ -1,8 +1,8 @@
 __copyright__ = "Copyright (c) 2020-2021 Jina AI Limited. All rights reserved."
 __license__ = "Apache-2.0"
 
-import pytest
 import numpy as np
+import pytest
 from jina import Document, DocumentArray
 from jinahub.encoder.transformer_tf_text_encode import TransformerTFTextEncoder
 
