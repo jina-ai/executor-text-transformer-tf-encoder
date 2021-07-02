@@ -47,7 +47,7 @@ pods:
 1. Install the package.
 
 	```bash
-	pip install git+https://github.com/jina-ai//executor-text-transformer-tf-encoder.git
+	pip install git+https://github.com/jina-ai/executor-text-transformer-tf-encoder.git
 	```
 
 1. Use `TransformerTFTextEncoder` in your code
