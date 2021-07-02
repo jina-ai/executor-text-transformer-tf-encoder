@@ -51,6 +51,6 @@ def test_traversal_path():
 
 def test_no_documents():
     encoder = TransformerTFTextEncoder()
-    docs = []
+    docs = DocumentArray([])
     encoder.encode(docs, parameters={'batch_size': 10, 'traversal_paths': ['r']})
     assert not docs

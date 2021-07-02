@@ -105,4 +105,4 @@ Here is an example usage of the **TransformerTFTextEncoder**.
 
 ### Returns
 
-`Document` with `embedding` fields filled with an `ndarray`  with `dtype=nfloat32`.
+`Document` with `embedding` fields filled with an `ndarray`  with `dtype==np.float32`.

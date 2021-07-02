@@ -98,8 +98,8 @@ class TransformerTFTextEncoder(Executor):
         """
         Encode an array of string in size `B` into an ndarray in size `B x D`,
         where `B` is the batch size and `D` is the dimensionality of the encoding.
-        :param docs: a document array of string type in size `B`
-        :return: an ndarray in size `B x D`
+        :param docs: DocumentArray containing images
+        :param parameters: dictionary parameters
         """
         if docs:
             document_batches_generator = self._get_input_data(docs, parameters)
