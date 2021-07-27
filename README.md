@@ -1,3 +1,5 @@
+NOT MAINTAINED. MOVED TO https://github.com/jina-ai/executors/tree/main/jinahub/encoders/text/TransformerTFTextEncoder
+
 # TransformerTFTextEncoder
 TransformerTFEncoder wraps the tensorflow-version of transformers from huggingface, encodes data from an array of string in size `B` into an ndarray in size `B x D`
 
